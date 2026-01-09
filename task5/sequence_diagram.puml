@@ -1,0 +1,31 @@
+@startuml
+title Alexandrite Cache Sequence Diagram
+
+actor "Operator" as oper
+participant "MES" as mes
+participant "MES API" as mes_api
+database "Cache" as cache
+database "MES DB" as mes_db
+
+oper-> mes: Запрос всех заказов в статусе MANUFACTURING_APPROVED
+mes -> mes_api: GET
+mes_api -> cache: запрос из кэша
+alt "в кэше"
+    cache -> mes_api: результат
+else "не в кэше"
+    mes_api -> mes_db: получение заказов из БД
+    mes_db -> mes_api: результат
+    mes_api -> cache: запись в кэш
+end
+mes_api -> mes: результат
+mes -> oper: Отображение в интерфейсе
+
+oper-> mes: Изменение/удаление заказа
+mes -> mes_api: PUT/PATCH/DELETE
+mes_api -> mes_db: внесение изменений
+mes_api <- mes_db: commit
+mes_api -> cache: инвалидация кэша
+mes_api -> mes: 200 OK
+mes -> oper: 200 OK
+
+@enduml
